@@ -212,31 +212,40 @@ def indir():
     format_secimi = request.form.get('format')
     
     try:
-        api_url = "https://api.cobalt.tools/api/json"
+        # Yeni ve süper hızlı alternatif tünel API'si
+        api_url = "https://api.ddownr.com/v1/create"
+        
+        # İstek başlıkları
         headerlar = {
             "Accept": "application/json",
             "Content-Type": "application/json"
         }
         
-        is_audio = True if format_secimi == "mp3" else False
+        # Seçilen formata göre kaliteyi ayarlıyoruz
+        kalite = "mp3" if format_secimi == "mp3" else "720"
         
         veri = {
             "url": url,
-            "audioFormat": "mp3",
-            "videoQuality": "720",
-            "isAudioOnly": is_audio
+            "format": kalite
         }
         
         cevap = requests.post(api_url, json=veri, headers=headerlar)
         sonuc = cevap.json()
         
+        # ddownr API'si bazen 'url' yerine doğrudan indirme id'si veya linki döner
         if "url" in sonuc:
             return redirect(sonuc["url"])
+        elif "downloadUrl" in sonuc:
+            return redirect(sonuc["downloadUrl"])
         else:
-            return "❌ Python Motoru Hatası: Link çözülemedi. Lütfen geçerli bir YouTube linki girdiğinizden emin olun."
+            # Yedek hızlı yöntem (Eğer JSON patlarsa direkt yönlendirme tüneli)
+            backup_url = f"https://loader.to/api/button/?url={url}&f={kalite}"
+            return redirect(backup_url)
             
     except Exception as e:
-        return f"❌ Sunucu Hatası: {e}"
+        # Hata anında bile kullanıcıyı boş bırakmıyoruz, yedek indirme tüneline fırlatıyoruz
+        kalite = "mp3" if format_secimi == "mp3" else "720"
+        return redirect(f"https://loader.to/api/button/?url={url}&f={kalite}")
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
